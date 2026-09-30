@@ -33,4 +33,5 @@ jobs:
             grep -E "error:|fatal error" build/compila.log | sed -E "s#$GITHUB_WORKSPACE/##g" | sort -u | head -200
             exit 1
           fi
-          grep -cE "warning:" build/compila.log | xargs -I{} echo "Compila. Avvisi: {}"
+          echo "Compila. Avvisi:"
+          grep -E "warning:" build/compila.log | sed -E "s#$GITHUB_WORKSPACE/##g" | sort -u | head -50 || true
