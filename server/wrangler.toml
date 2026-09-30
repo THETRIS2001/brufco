@@ -1,0 +1,25 @@
+# Il server di BRU✈️FCO: https://brufco.clamafloro.workers.dev
+name = "brufco"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+BUNDLE_ID = "com.marcorisa.brufco"
+
+# Segreti (npx wrangler secret list): APNS_KEY_P8, CODICE_COPPIA e CARICA_BUILD,
+# che consegna `node strumenti/chiavi.mjs`; APNS_KEY_ID e APNS_TEAM_ID, che non
+# sono segreti ma stanno fuori da questo repository, che e' pubblico.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "brufco"
+database_id = "818f7734-6c51-491c-b88a-e7fc62c6b86a"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "FILE"
+bucket_name = "brufco"
+
+[observability]
+enabled = true

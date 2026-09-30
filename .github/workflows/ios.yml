@@ -1,0 +1,143 @@
+# La build ad hoc di BRU✈️FCO, su un Mac di GitHub (gratis per i repository
+# pubblici).
+#
+#   git tag adhoc-$(date +%Y%m%d-%H%M) && git push origin main --tags
+#
+# Dall'iPhone si installa da https://brufco.clamafloro.workers.dev/installa.
+# Com'e' andata: /build/esito.txt ("ok <numero>" o gli errori di compilazione).
+#
+# IL REPOSITORY E' PUBBLICO, E I LOG PURE. L'uscita di xcodebuild, che stampa
+# certificato e team, va in un file e non si mostra: si stampano solo gli
+# errori, ripuliti (strumenti/esito.sh). Nessun artefatto.
+#
+# Segreti del repository: APPLE_CERT_P12, APPLE_CERT_PASSWORD e CARICA_BUILD
+# (strumenti/chiavi.mjs); SQUADRA_APPLE e PROFILO_APP, PROFILO_WIDGET,
+# PROFILO_NOTIFICHE (strumenti/apple.mjs).
+name: iOS ad hoc
+
+on:
+  push:
+    tags: ['adhoc-*']
+  workflow_dispatch:
+
+concurrency:
+  group: ios-adhoc
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  adhoc:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      SERVER: https://brufco.clamafloro.workers.dev
+      SQUADRA_APPLE: ${{ secrets.SQUADRA_APPLE }}
+      CARICA_BUILD: ${{ secrets.CARICA_BUILD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode 26 e XcodeGen
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version | head -1
+          brew install xcodegen > /dev/null
+
+      - name: Progetto Xcode, da project.yml
+        run: xcodegen generate --quiet
+
+      - name: Certificato e profili
+        env:
+          APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          PROFILO_APP: ${{ secrets.PROFILO_APP }}
+          PROFILO_WIDGET: ${{ secrets.PROFILO_WIDGET }}
+          PROFILO_NOTIFICHE: ${{ secrets.PROFILO_NOTIFICHE }}
+        run: |
+          PORTACHIAVI="$RUNNER_TEMP/firma.keychain-db"
+          PAROLA=$(openssl rand -hex 16)
+          echo "$APPLE_CERT_P12" | base64 --decode > "$RUNNER_TEMP/firma.p12"
+          security create-keychain -p "$PAROLA" "$PORTACHIAVI"
+          security set-keychain-settings -lut 3600 "$PORTACHIAVI"
+          security unlock-keychain -p "$PAROLA" "$PORTACHIAVI"
+          security import "$RUNNER_TEMP/firma.p12" -k "$PORTACHIAVI" -P "$APPLE_CERT_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security > /dev/null
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$PAROLA" "$PORTACHIAVI" > /dev/null
+          security list-keychains -d user -s "$PORTACHIAVI" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/firma.p12"
+          DESTINAZIONE="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$DESTINAZIONE"
+          for PROFILO in "$PROFILO_APP" "$PROFILO_WIDGET" "$PROFILO_NOTIFICHE"; do
+            echo "$PROFILO" | base64 --decode > "$RUNNER_TEMP/profilo.mobileprovision"
+            UUID=$(security cms -D -i "$RUNNER_TEMP/profilo.mobileprovision" 2> /dev/null | plutil -extract UUID raw -o - -)
+            mv "$RUNNER_TEMP/profilo.mobileprovision" "$DESTINAZIONE/$UUID.mobileprovision"
+          done
+
+      - name: Compila e archivia
+        run: |
+          NUMERO=$(date -u +%Y%m%d%H%M)
+          echo "NUMERO=$NUMERO" >> "$GITHUB_ENV"
+          mkdir -p build
+          if ! xcodebuild -project BRUFCO.xcodeproj -scheme BRUFCO -configuration Release \
+               -destination 'generic/platform=iOS' -archivePath build/BRUFCO.xcarchive \
+               CURRENT_PROJECT_VERSION="$NUMERO" archive > build/compila.log 2>&1; then
+            bash strumenti/esito.sh build/compila.log "build $NUMERO: la compilazione non e' andata"
+            exit 1
+          fi
+
+      - name: Esporta l'ipa, col manifesto per installare da un link
+        run: |
+          cat > build/esporta.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>release-testing</string>
+            <key>teamID</key><string>$SQUADRA_APPLE</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key><dict>
+              <key>com.marcorisa.brufco</key><string>BRUFCO Ad Hoc</string>
+              <key>com.marcorisa.brufco.widget</key><string>BRUFCO Widget Ad Hoc</string>
+              <key>com.marcorisa.brufco.notifiche</key><string>BRUFCO Notifiche Ad Hoc</string>
+            </dict>
+            <key>manifest</key><dict>
+              <key>appURL</key><string>$SERVER/build/app.ipa</string>
+              <key>displayImageURL</key><string>$SERVER/build/icona-57.png</string>
+              <key>fullSizeImageURL</key><string>$SERVER/build/icona-512.png</string>
+            </dict>
+          </dict></plist>
+          EOF
+          if ! xcodebuild -exportArchive -archivePath build/BRUFCO.xcarchive -exportPath build/export \
+               -exportOptionsPlist build/esporta.plist > build/esporta.log 2>&1; then
+            bash strumenti/esito.sh build/esporta.log "build $NUMERO: l'esportazione non e' andata"
+            exit 1
+          fi
+          test -f build/export/manifest.plist
+          ICONA=App/Assets.xcassets/AppIcon.appiconset/icona.png
+          sips -z 57 57 "$ICONA" --out build/icona-57.png > /dev/null
+          sips -z 512 512 "$ICONA" --out build/icona-512.png > /dev/null
+
+      - name: Pubblica sulla pagina d'installazione
+        run: |
+          carica() {
+            curl --fail --silent --show-error --retry 3 -X PUT -H "Authorization: Bearer $CARICA_BUILD" \
+              -H "Content-Type: $3" --data-binary @"$2" "$SERVER/build/$1"
+          }
+          IPA=$(ls build/export/*.ipa | head -1)
+          carica app.ipa "$IPA" application/octet-stream
+          carica manifest.plist build/export/manifest.plist text/xml
+          carica icona-57.png build/icona-57.png image/png
+          carica icona-512.png build/icona-512.png image/png
+          printf '{"numero":"%s","data":"%s"}' "$NUMERO" "$(TZ=Europe/Rome date '+%d/%m/%Y %H:%M')" > build/info.json
+          carica info.json build/info.json application/json
+          echo "ok $NUMERO" > build/esito.txt
+          carica esito.txt build/esito.txt text/plain
+          echo "Installa da $SERVER/installa"
+
+      - name: Via certificato e profili dal Mac
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/firma.keychain-db" 2> /dev/null || true
+          rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision

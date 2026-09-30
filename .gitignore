@@ -1,0 +1,24 @@
+# Chiavi e segreti: mai nel repository.
+chiavi/
+*.p8
+*.p12
+*.key
+.dev.vars
+
+# Generati.
+*.xcodeproj/
+build/
+DerivedData/
+node_modules/
+server/.wrangler/
+.DS_Store
+
+# Li scrive xcodegen da project.yml.
+*/Info.plist
+*/*.entitlements
+
+# Fuori dal repository pubblico: gli identificativi del team e delle chiavi
+# (strumenti/locale.json), i telefoni e i loro profili (vanno nei segreti di
+# GitHub, li carica strumenti/apple.mjs).
+strumenti/locale.json
+firma/

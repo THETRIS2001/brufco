@@ -1,0 +1,104 @@
+# Il progetto Xcode, in testo: `xcodegen generate` (sul Mac della build, vedi
+# .github/workflows/ios.yml) scrive BRUFCO.xcodeproj, gli Info.plist e gli
+# entitlements. Nessuno di quei file sta nel repository: si cambia qui.
+# Il team arriva dall'ambiente (SQUADRA_APPLE, un segreto della build): nel
+# repository, che e' pubblico, non c'e'.
+name: BRUFCO
+options:
+  deploymentTarget:
+    iOS: "18.0"
+  developmentLanguage: it
+settings:
+  base:
+    # La firma e' quella di distribuzione, coi profili ad hoc che prepara
+    # strumenti/apple.mjs.
+    DEVELOPMENT_TEAM: ${SQUADRA_APPLE}
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Apple Distribution"
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1"
+targets:
+  BRUFCO:
+    type: application
+    platform: iOS
+    sources: [App, Condiviso]
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: "BRU✈️FCO"
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        GruppoPortachiavi: $(AppIdentifierPrefix)com.marcorisa.brufco
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIBackgroundModes: [remote-notification]
+        NSCameraUsageDescription: "Per scattare una foto su cui disegnare."
+        NSPhotoLibraryUsageDescription: "Per scegliere una foto su cui disegnare."
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleURLTypes:
+          - CFBundleURLName: com.marcorisa.brufco
+            CFBundleURLSchemes: [brufco]
+    entitlements:
+      path: App/BRUFCO.entitlements
+      properties:
+        aps-environment: production
+        keychain-access-groups: [$(AppIdentifierPrefix)com.marcorisa.brufco]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.marcorisa.brufco
+        PROVISIONING_PROFILE_SPECIFIER: "BRUFCO Ad Hoc"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - target: Widget
+      - target: Notifiche
+    scheme: {}
+
+  Widget:
+    type: app-extension
+    platform: iOS
+    sources: [Widget, Condiviso]
+    info:
+      path: Widget/Info.plist
+      properties:
+        CFBundleDisplayName: "BRU✈️FCO"
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        GruppoPortachiavi: $(AppIdentifierPrefix)com.marcorisa.brufco
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widget/Widget.entitlements
+      properties:
+        # Per le push dei widget (iOS 26) serve la capability anche qui.
+        aps-environment: production
+        keychain-access-groups: [$(AppIdentifierPrefix)com.marcorisa.brufco]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.marcorisa.brufco.widget
+        PROVISIONING_PROFILE_SPECIFIER: "BRUFCO Widget Ad Hoc"
+
+  Notifiche:
+    type: app-extension
+    platform: iOS
+    sources: [Notifiche, Condiviso]
+    info:
+      path: Notifiche/Info.plist
+      properties:
+        CFBundleDisplayName: "BRU✈️FCO"
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        GruppoPortachiavi: $(AppIdentifierPrefix)com.marcorisa.brufco
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.usernotifications.service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).NotificationService
+    entitlements:
+      path: Notifiche/Notifiche.entitlements
+      properties:
+        keychain-access-groups: [$(AppIdentifierPrefix)com.marcorisa.brufco]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.marcorisa.brufco.notifiche
+        PROVISIONING_PROFILE_SPECIFIER: "BRUFCO Notifiche Ad Hoc"
