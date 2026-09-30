@@ -55,6 +55,12 @@ describe('iscrizione', () => {
     expect((await server.chiedi('GET', '/stato', undefined, nuovo.token)).status).toBe(200);
   });
 
+  it('il codice si scrive come viene: maiuscole e spazi non contano', async () => {
+    server = await nuovoServer();
+    expect((await server.chiedi('POST', '/persone', { nome: 'Marco', codice: 'Bruxelles Roma' })).status).toBe(201);
+    expect((await server.chiedi('POST', '/persone', { nome: 'Giulia', codice: 'BRUXELLESROMA' })).status).toBe(201);
+  });
+
   it('senza token o con un token inventato non si passa', async () => {
     await coppia();
     expect((await server.chiedi('GET', '/stato')).status).toBe(401);

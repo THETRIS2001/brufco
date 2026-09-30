@@ -16,12 +16,19 @@ import type { Env, Persona } from './tipi';
 
 const COLONNE = 'id, nome, apns_token, widget_token';
 
+/** Il codice si scrive come viene: maiuscole, spazi e trattini non contano. */
+function normalizzato(codice: string): string {
+  return codice.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 export async function registra(env: Env, corpo: { nome?: unknown; codice?: unknown } | null): Promise<Response> {
   if (!env.CODICE_COPPIA) throw new ErroreHttp(503, 'Il server non ha ancora il codice della coppia.');
   const nome = typeof corpo?.nome === 'string' ? corpo.nome.trim() : '';
   const codice = typeof corpo?.codice === 'string' ? corpo.codice.trim() : '';
   if (!nome || nome.length > 40) throw new ErroreHttp(400, 'Scrivi il tuo nome, al massimo 40 caratteri.');
-  if (!ugualiTempoCostante(codice, env.CODICE_COPPIA)) throw new ErroreHttp(403, 'Il codice della coppia non è giusto.');
+  if (!ugualiTempoCostante(normalizzato(codice), normalizzato(env.CODICE_COPPIA))) {
+    throw new ErroreHttp(403, 'Il codice della coppia non è giusto.');
+  }
 
   const token = casuale();
   const giaIscritta = await env.DB.prepare('SELECT id, nome FROM persone WHERE lower(nome) = lower(?)')

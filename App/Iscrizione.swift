@@ -18,9 +18,11 @@ struct Iscrizione: View {
                 Section {
                     TextField("Il tuo nome", text: $nome)
                         .textContentType(.givenName)
-                    SecureField("Codice della coppia", text: $codice)
+                    TextField("Codice della coppia", text: $codice)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                 } footer: {
-                    Text("Il codice ve lo siete dati voi due: serve solo adesso.")
+                    Text("Il codice ve lo siete dati voi due: serve solo adesso. Maiuscole e spazi non contano.")
                 }
                 if let errore {
                     Section {
