@@ -475,7 +475,11 @@ def via() -> None:
         for d in risposta['disegni']:
             if d['autore_id'] == prova['id']:
                 chiedi('DELETE', f"/disegni/{d['id']}", prova['token'])
-    d1(f"DELETE FROM widget WHERE destinatario_id = '{prova['id']}'; DELETE FROM persone WHERE id = '{prova['id']}';")
+    d1(
+        f"DELETE FROM widget WHERE destinatario_id = '{prova['id']}'; "
+        f"DELETE FROM invii WHERE persona_id = '{prova['id']}'; "
+        f"DELETE FROM persone WHERE id = '{prova['id']}';"
+    )
     PROVA.unlink()
     print(f'Persona di prova "{NOME}" tolta, coi suoi disegni. Il posto e\' di nuovo libero.')
 

@@ -33,6 +33,11 @@ posto (server e GitHub).
 - Storico, "mettilo sul widget di…", modifica (sostituisce), eliminazione
   (il widget dell'altra persona torna al disegno precedente).
 - Tema scuro: la tela deve restare bianca e i colori quelli scelti.
+- Foto dalla fotocamera e dalla libreria: la barra degli strumenti di
+  PencilKit non deve più coprirle (copriva la fotocamera, corretto il 30/09),
+  e tornata la tela deve ricomparire da sola.
+- La serie nei giorni successivi: sale se disegnate tutti e due, "Oggi manca…"
+  finché qualcuno non ha disegnato, e se si rompe dice di chi è la colpa.
 
 ## 3. Scadenze
 

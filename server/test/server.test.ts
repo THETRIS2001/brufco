@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DOCUMENTO, modulo, nuovoServer } from './ambiente';
 
 type Server = Awaited<ReturnType<typeof nuovoServer>>;
@@ -214,6 +214,51 @@ describe('storico', () => {
     const b = await disegna(giulia.token);
     const { disegni } = (await (await server.chiedi('GET', '/disegni', undefined, marco.token)).json()) as { disegni: { id: string }[] };
     expect(disegni.map((d) => d.id)).toEqual([b.id, a.id]);
+  });
+});
+
+describe('serie', () => {
+  type ConSerie = { serie: { giorni: number; oggi: { io: boolean; altro: boolean } } | null };
+  const serie = async (token: string) => ((await (await server.chiedi('GET', '/stato', undefined, token)).json()) as ConSerie).serie;
+
+  it('conta i disegni nuovi e ritoccati di tutti e due; rimandarne uno o eliminarlo no', async () => {
+    const { marco, giulia } = await coppia();
+    const suo = await disegna(marco.token);
+    expect(await serie(marco.token)).toMatchObject({ giorni: 0, oggi: { io: true, altro: false } });
+    expect(await serie(giulia.token)).toMatchObject({ giorni: 0, oggi: { io: false, altro: true } });
+
+    await server.chiedi('POST', `/disegni/${suo.id}/widget`, { notifica: false }, giulia.token);
+    expect((await serie(marco.token))?.oggi.altro).toBe(false);
+
+    const mio = await disegna(giulia.token);
+    expect(await serie(marco.token)).toMatchObject({ giorni: 1, oggi: { io: true, altro: true } });
+
+    expect((await server.chiedi('DELETE', `/disegni/${mio.id}`, undefined, giulia.token)).status).toBe(204);
+    expect((await serie(giulia.token))?.giorni).toBe(1);
+  });
+
+  it('un disegno ritoccato un altro giorno vale per quel giorno', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2026-10-01T10:00:00Z'));
+      const { marco, giulia } = await coppia();
+      const suo = await disegna(giulia.token);
+      vi.setSystemTime(new Date('2026-10-02T10:00:00Z'));
+      await disegna(marco.token);
+      expect((await serie(marco.token))?.oggi).toEqual({ io: true, altro: false });
+      const r = await server.chiedi('PUT', `/disegni/${suo.id}`, modulo({ documento: DOCUMENTO, anteprima: 'JPEG2' }), giulia.token);
+      expect(r.status).toBe(200);
+      expect(await serie(marco.token)).toMatchObject({ giorni: 1, oggi: { io: true, altro: true } });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('finche\' si e\' da soli non c\'e\'', async () => {
+    server = await nuovoServer();
+    const r = (await (await server.chiedi('POST', '/persone', { nome: 'Marco', codice: 'bruxelles-roma' })).json()) as { token: string };
+    await disegna(r.token);
+    expect(await serie(r.token)).toBeNull();
   });
 });
 

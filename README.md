@@ -21,6 +21,11 @@ Cosa manca, in ordine: [`docs/DA-FARE.md`](docs/DA-FARE.md).
   dall'altro; a ogni invio si sceglie se con la notifica o senza; dallo
   storico "mettilo sul widget di…" rimanda un disegno qualsiasi; si modificano
   (sostituendoli) e si eliminano solo i propri.
+- **La serie** (in cima alla Home): i giorni di fila, ora di Roma, in cui
+  tutti e due hanno mandato almeno un disegno nuovo o ritoccato (rimandarne
+  uno vecchio non conta). Oggi non la rompe finché non è finito; quando
+  finisce, dice di chi è la colpa. La calcola il server (`server/src/serie.ts`)
+  dalla tabella `invii`, che eliminare un disegno non tocca.
 - **Le push**, dirette ad APNs:
   - *con notifica*: l'estensione Notifiche si sveglia sempre, mette il disegno
     nella notifica e ricarica il widget. Pochi secondi;

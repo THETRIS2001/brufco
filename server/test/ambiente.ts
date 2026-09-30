@@ -1,8 +1,8 @@
 /**
  * Un Worker da provare senza Cloudflare: D1 e' SQLite vero (node:sqlite) con
- * la stessa migrazione, R2 una mappa, e le chiamate ad Apple si intercettano.
+ * le stesse migrazioni, R2 una mappa, e le chiamate ad Apple si intercettano.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import worker from '../src/index';
 import type { Env } from '../src/tipi';
@@ -42,7 +42,10 @@ class Istruzione {
 
 function d1(): D1Database {
   const db = new DatabaseSync(':memory:');
-  db.exec(readFileSync(new URL('../migrations/0001_iniziale.sql', import.meta.url), 'utf-8'));
+  const cartella = new URL('../migrations/', import.meta.url);
+  for (const f of readdirSync(cartella).filter((n) => n.endsWith('.sql')).sort()) {
+    db.exec(readFileSync(new URL(f, cartella), 'utf-8'));
+  }
   return {
     prepare: (sql: string) => new Istruzione(db, sql),
     async batch(istruzioni: Istruzione[]) {

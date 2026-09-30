@@ -18,6 +18,7 @@
  */
 import { avvisa, type Motivo } from './push';
 import { altra } from './persone';
+import { segnaInvio } from './serie';
 import { ErroreHttp, json } from './http';
 import { daRiga, type Contesto, type Disegno, type Env, type Persona, type RigaDisegno } from './tipi';
 
@@ -113,6 +114,7 @@ export async function crea(env: Env, ctx: Contesto, io: Persona, req: Request): 
   await env.DB.prepare(`INSERT INTO disegni (${COLONNE}) VALUES (?, ?, ?, ?, ?, ?)`)
     .bind(disegno.id, io.id, ora, ora, 1, disegno.con_sfondo ? 1 : 0)
     .run();
+  await segnaInvio(env, io.id, ora);
   await mandaAllAltro(env, ctx, io, disegno, modulo.get('notifica') === '1', 'nuovo');
   return json({ disegno }, 201);
 }
@@ -143,6 +145,7 @@ export async function sostituisci(env: Env, ctx: Contesto, io: Persona, id: stri
   await env.DB.prepare('UPDATE disegni SET modificato_at = ?, versione = ?, con_sfondo = ? WHERE id = ?')
     .bind(disegno.modificato_at, disegno.versione, disegno.con_sfondo ? 1 : 0, id)
     .run();
+  await segnaInvio(env, io.id, disegno.modificato_at);
   await mandaAllAltro(env, ctx, io, disegno, modulo.get('notifica') === '1', 'modificato');
   return json({ disegno });
 }

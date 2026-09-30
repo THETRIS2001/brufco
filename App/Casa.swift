@@ -12,6 +12,9 @@ struct Casa: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
+                    if let serie = modello.stato?.serie {
+                        VistaSerie(serie: serie, nomeAltro: modello.nomeAltro)
+                    }
                     // Quello che vedo io e quello che vede l'altra persona,
                     // affiancati: finche' lei non c'e', solo il mio.
                     if modello.altro != nil || modello.stato?.mioWidget != nil {
@@ -74,6 +77,75 @@ struct Casa: View {
             aperto = disegno
             modello.daAprire = nil
         }
+    }
+}
+
+/// La serie: i giorni di fila, chi manca oggi, il record e di chi e' la colpa
+/// dell'ultima finita.
+struct VistaSerie: View {
+    let serie: Serie
+    let nomeAltro: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "flame.fill")
+                .font(.title)
+                .foregroundStyle(serie.giorni > 0 ? Color.orange : Color.secondary)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(serie.giorni == 1 ? "1 giorno di fila" : "\(serie.giorni) giorni di fila")
+                    .font(.headline)
+                Text(oggi)
+                    .font(.footnote)
+                    .foregroundStyle(serie.oggi.io ? Color.secondary : Color.orange)
+                if let persa {
+                    Text(persa)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 0)
+            if serie.record > serie.giorni {
+                VStack(spacing: 0) {
+                    Text("\(serie.record)").font(.headline.monospacedDigit())
+                    Text("record").font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var oggi: String {
+        switch (serie.oggi.io, serie.oggi.altro) {
+        case (true, true): "Oggi fatto, tutti e due"
+        case (true, false): "Oggi manca \(nomeAltro)"
+        case (false, true): "Oggi manchi tu"
+        case (false, false): "Oggi mancate tutti e due"
+        }
+    }
+
+    /// "L'ultima (5 giorni) è finita ieri: colpa di Giulia".
+    private var persa: String? {
+        guard let p = serie.persa else { return nil }
+        let colpa = switch (p.chi.contains("io"), p.chi.contains("altro")) {
+        case (true, true): "colpa di tutti e due"
+        case (true, false): "colpa tua"
+        default: "colpa di \(nomeAltro)"
+        }
+        let durata = p.durata == 1 ? "1 giorno" : "\(p.durata) giorni"
+        return "L'ultima (\(durata)) è finita \(quando(p.giorno)): \(colpa)"
+    }
+
+    private func quando(_ giorno: String) -> String {
+        let lettore = DateFormatter()
+        lettore.calendar = Calendar(identifier: .gregorian)
+        lettore.locale = Locale(identifier: "en_US_POSIX")
+        lettore.timeZone = TimeZone(identifier: "Europe/Rome")
+        lettore.dateFormat = "yyyy-MM-dd HH:mm"
+        guard let data = lettore.date(from: "\(giorno) 12:00") else { return "il \(giorno)" }
+        if Calendar.current.isDateInYesterday(data) { return "ieri" }
+        return "il " + data.formatted(.dateTime.day().month(.abbreviated).locale(Locale(identifier: "it_IT")))
     }
 }
 

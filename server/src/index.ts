@@ -19,6 +19,7 @@ import { caricaBuild, paginaInstalla, scaricaBuild } from './build';
 import { crea, elenco, elimina, rimanda, scaricaParte, sostituisci, sulWidgetDi, type Parte } from './disegni';
 import { ErroreHttp, corpoJson, json } from './http';
 import { aggiornaDispositivo, altra, chiChiama, registra } from './persone';
+import { serieDi } from './serie';
 import type { Contesto, Env } from './tipi';
 import { paginaFatto, paginaUdid, profiloUdid, rispostaUdid } from './udid';
 
@@ -51,6 +52,7 @@ async function instrada(req: Request, env: Env, ctx: Contesto): Promise<Response
       altro: lei ? { id: lei.id, nome: lei.nome } : null,
       mio_widget: mio?.disegno ?? null,
       suo_widget: suo?.disegno ?? null,
+      serie: lei ? await serieDi(env, io, lei) : null,
     });
   }
   if (metodo === 'PUT' && percorso === '/dispositivo') return aggiornaDispositivo(env, io, await corpoJson(req));
