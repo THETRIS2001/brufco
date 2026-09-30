@@ -3,25 +3,20 @@
 Aggiornato al 30/09/2026. Chi chiude un punto lo toglie da qui nello stesso
 commit; chi ne trova uno lo aggiunge.
 
-## 1. Marco, una volta sola
+La prima build ad hoc è pubblicata (30/09, build 202609302027): compila
+pulita, firmata per il solo iPhone di Marco. Si installa da
+https://brufco.clamafloro.workers.dev/installa. Le chiavi sono tutte al loro
+posto (server e GitHub).
 
-- **`node strumenti/chiavi.mjs`**, nella cartella BRUFCO: consegna le chiavi al
-  server e a GitHub, senza niente da incollare. Chiede solo il codice della
-  coppia: con Invio lo inventa lui, lo mostra alla fine e lo tiene in
-  `chiavi/codice-coppia.txt` (fuori dal repository).
-- **Il suo iPhone 14**: lei apre in Safari
-  **https://brufco.clamafloro.workers.dev/udid** e segue i tre passi (un
-  profilo che non installa niente manda il codice del telefono). L'UDID
-  compare a lei, da girare a Marco, e resta sul server (`udid/` su R2). Poi
-  `node strumenti/apple.mjs dispositivo <UDID> "iPhone di ..."` e un tag:
-  lo fa Claude, basta l'UDID.
+## 1. Il suo iPhone 14
 
-## 2. La prima build
+- Lei apre in Safari **https://brufco.clamafloro.workers.dev/udid** e segue i
+  tre passi (un profilo che non installa niente manda il codice del telefono).
+  L'UDID compare a lei, da girare a Marco, e resta sul server (`udid/` su R2).
+  Poi `node strumenti/apple.mjs dispositivo <UDID> "iPhone di ..."` e un tag:
+  lo fa Claude, basta l'UDID (e la conferma di Marco che il telefono è il suo).
 
-- Lo Swift non è mai stato compilato: la prima build quasi certamente riporta
-  errori. Si leggono da `/build/esito.txt`, si correggono, nuovo tag.
-
-## 3. Prove sui due telefoni
+## 2. Prove sui due telefoni
 
 - Iscrizione dei due (nome + codice), permesso per le notifiche.
 - Un disegno su bianco e uno su foto (libreria e fotocamera), con scritte:
@@ -35,7 +30,7 @@ commit; chi ne trova uno lo aggiunge.
   (il widget dell'altra persona torna al disegno precedente).
 - Tema scuro: la tela deve restare bianca e i colori quelli scelti.
 
-## 4. Scadenze
+## 3. Scadenze
 
 - **13/09/2027**: scade il certificato di distribuzione del team, e con lui
   l'app. Come rinnovare: README, "Scadenze".

@@ -106,6 +106,9 @@ jobs:
             exit 1
           fi
           test -f build/export/manifest.plist
+          # Xcode ci scrive il nome del target: iOS lo mostra quando chiede
+          # "vuoi installare ...?", e deve essere quello vero.
+          plutil -replace items.0.metadata.title -string "BRU✈️FCO" build/export/manifest.plist
           ICONA=App/Assets.xcassets/AppIcon.appiconset/icona.png
           sips -z 57 57 "$ICONA" --out build/icona-57.png > /dev/null
           sips -z 512 512 "$ICONA" --out build/icona-512.png > /dev/null
