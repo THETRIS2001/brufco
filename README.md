@@ -92,6 +92,15 @@ poi il trattino va rimesso dopo i primi otto caratteri.
 Nell'app ci si iscrive col proprio nome e il codice della coppia. Su un
 telefono nuovo, stesso nome e stesso codice: si ritrova la propria persona.
 
+## Provare da soli
+
+`python strumenti/prova.py manda cuore` (o `volo`, `tramonto`, `noi`;
+`--senza-notifica` per la sola push del widget) manda un disegno come se
+arrivasse dall'altra persona, passando dal server vero. Per farlo crea una
+persona di prova, "Lei", che **occupa il secondo posto della coppia**: prima
+che si iscriva la persona vera, `python strumenti/prova.py via` la toglie coi
+suoi disegni. `python strumenti/prova.py guarda` salva solo le immagini.
+
 ## Scadenze
 
 Il certificato di distribuzione del team, e con lui i profili, scade il
