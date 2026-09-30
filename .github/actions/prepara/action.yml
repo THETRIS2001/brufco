@@ -11,7 +11,7 @@ runs:
       run: |
         XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
         sudo xcode-select -s "$XCODE"
-        xcodebuild -version | head -1
+        xcodebuild -version
         brew install xcodegen > /dev/null
     - name: Progetto Xcode, da project.yml
       shell: bash
