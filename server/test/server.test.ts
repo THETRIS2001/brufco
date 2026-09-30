@@ -232,6 +232,15 @@ describe('installazione', () => {
     expect((await carica('esito.txt', 'ok 7')).status).toBe(204);
     expect(await (await server.chiedi('GET', '/build/esito.txt')).text()).toBe('ok 7');
   });
+
+  it('le icone col trattino nel nome si caricano e si scaricano', async () => {
+    server = await nuovoServer();
+    const carica = (nome: string) => server.chiedi('PUT', `/build/${nome}`, 'PNG', 'segreto-delle-build');
+    expect((await carica('icona-57.png')).status).toBe(204);
+    expect((await carica('icona-512.png')).status).toBe(204);
+    expect(await (await server.chiedi('GET', '/build/icona-57.png')).text()).toBe('PNG');
+    expect(await (await server.chiedi('GET', '/build/icona-512.png')).text()).toBe('PNG');
+  });
 });
 
 describe('udid di un iPhone lontano', () => {

@@ -32,7 +32,7 @@ async function instrada(req: Request, env: Env, ctx: Contesto): Promise<Response
 
   // Pubbliche: la pagina d'installazione e i suoi file, e l'iscrizione.
   if (metodo === 'GET' && percorso === '/installa') return paginaInstalla(env, url.origin);
-  const build = /^\/build\/([\w.]+)$/.exec(percorso);
+  const build = /^\/build\/([\w.-]+)$/.exec(percorso);
   if (build && metodo === 'GET') return scaricaBuild(env, build[1]);
   if (build && metodo === 'PUT') return caricaBuild(env, build[1], req);
   if (metodo === 'POST' && percorso === '/persone') return registra(env, await corpoJson(req));
