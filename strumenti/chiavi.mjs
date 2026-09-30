@@ -16,7 +16,7 @@
 // ogni passo, senza valori, sta in chiavi/consegna.log.
 
 import { randomBytes, randomInt } from 'node:crypto';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
@@ -52,6 +52,21 @@ if (WINDOWS) {
   AMBIENTE_GH.APPDATA ??= join(homedir(), 'AppData', 'Roaming');
   AMBIENTE_GH.LOCALAPPDATA ??= join(homedir(), 'AppData', 'Local');
   AMBIENTE_GH.USERPROFILE ??= homedir();
+}
+// L'app Claude per Windows e' un'app "pacchettizzata" (MSIX): quello che i
+// programmi lanciati da li' scrivono in AppData finisce nella sua cartella
+// privata. Se gh ha fatto il login da li', le finestre aperte da Esplora file
+// non lo vedono ("gh auth login"). Il token sta nel Gestore credenziali, che
+// e' di tutti; basta dire a gh dov'e' la sua configurazione (30/09/2026).
+if (WINDOWS && !AMBIENTE_GH.GH_CONFIG_DIR) {
+  const pacchetti = join(homedir(), 'AppData', 'Local', 'Packages');
+  const dentroClaude = existsSync(pacchetti)
+    ? readdirSync(pacchetti)
+        .filter((d) => /^Claude_/i.test(d))
+        .map((d) => join(pacchetti, d, 'LocalCache', 'Roaming', 'GitHub CLI'))
+        .find((d) => existsSync(join(d, 'hosts.yml')))
+    : undefined;
+  if (dentroClaude) AMBIENTE_GH.GH_CONFIG_DIR = dentroClaude;
 }
 
 /** Un comando con un valore sullo standard input: il valore non passa mai dagli argomenti. */
@@ -130,7 +145,7 @@ async function codiceDellaCoppia() {
 
 {
   const stato = spawnSync(GH, ['auth', 'status', '--hostname', 'github.com'], { env: AMBIENTE_GH, encoding: 'utf8' });
-  annota(`GitHub: accesso ${stato.status === 0 ? 'ok' : 'NON trovato'} (gh in ${GH}).`);
+  annota(`GitHub: accesso ${stato.status === 0 ? 'ok' : 'NON trovato'} (gh in ${GH}, configurazione in ${AMBIENTE_GH.GH_CONFIG_DIR ?? 'AppData'}).`);
 }
 
 const server = TUTTO ? new Set() : nomiServer();
