@@ -4,6 +4,11 @@ import SwiftUI
 /// La tela di PencilKit con la sua barra degli strumenti: tutto nativo Apple.
 struct TelaPencil: UIViewRepresentable {
     @Binding var tratti: PKDrawing
+    /// La barra degli strumenti sta sopra a tutto, anche alla fotocamera e
+    /// alle domande in basso, e sparisce da sola solo quando qualcun altro
+    /// prende il fuoco (la fotocamera non lo prende): la si toglie a mano
+    /// finche' c'e' altro aperto.
+    let strumenti: Bool
     /// Quando cambia, la tela si riprende il fuoco (e la barra degli
     /// strumenti ricompare): serve dopo un foglio che l'ha tolto.
     let fuoco: Int
@@ -21,25 +26,42 @@ struct TelaPencil: UIViewRepresentable {
         tela.drawing = tratti
         tela.delegate = context.coordinator
 
-        let strumenti = context.coordinator.strumenti
-        strumenti.colorUserInterfaceStyle = .light
-        strumenti.addObserver(tela)
-        strumenti.setVisible(true, forFirstResponder: tela)
+        let barra = context.coordinator.barra
+        barra.colorUserInterfaceStyle = .light
+        barra.addObserver(tela)
+        barra.setVisible(strumenti, forFirstResponder: tela)
+        context.coordinator.visibili = strumenti
         context.coordinator.ultimoFuoco = fuoco
-        DispatchQueue.main.async { tela.becomeFirstResponder() }
+        if strumenti { DispatchQueue.main.async { tela.becomeFirstResponder() } }
         return tela
     }
 
     func updateUIView(_ tela: PKCanvasView, context: Context) {
         if tela.drawing != tratti { tela.drawing = tratti }
-        if context.coordinator.ultimoFuoco != fuoco {
-            context.coordinator.ultimoFuoco = fuoco
-            DispatchQueue.main.async { tela.becomeFirstResponder() }
+        let c = context.coordinator
+        if c.visibili != strumenti {
+            c.visibili = strumenti
+            c.barra.setVisible(strumenti, forFirstResponder: tela)
+            if strumenti {
+                // Chi era aperto sta ancora sparendo: il fuoco si riprende dopo.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    if c.visibili { tela.becomeFirstResponder() }
+                }
+            } else {
+                tela.resignFirstResponder()
+            }
+        }
+        if c.ultimoFuoco != fuoco {
+            c.ultimoFuoco = fuoco
+            DispatchQueue.main.async {
+                if c.visibili { tela.becomeFirstResponder() }
+            }
         }
     }
 
     final class Coordinatore: NSObject, PKCanvasViewDelegate {
-        let strumenti = PKToolPicker()
+        let barra = PKToolPicker()
+        var visibili = true
         var ultimoFuoco = 0
         private let tratti: Binding<PKDrawing>
 

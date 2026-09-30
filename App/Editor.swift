@@ -29,6 +29,13 @@ struct Editor: View {
 
     private var vuoto: Bool { tratti.strokes.isEmpty && scritte.isEmpty && sfondo == nil }
 
+    /// Gli strumenti di PencilKit solo quando non c'e' altro aperto: sopra la
+    /// fotocamera ne coprivano i tasti (Marco, 30/09), e su iOS 18 le domande
+    /// arrivano dal basso, proprio dove sta la barra.
+    private var strumentiVisibili: Bool {
+        sorgenteFoto == nil && scrittaAperta == nil && !chiediInvio && !chiediUscita && errore == nil
+    }
+
     var body: some View {
         NavigationStack {
             GeometryReader { geo in
@@ -98,7 +105,7 @@ struct Editor: View {
                     .frame(width: l, height: l)
                     .clipped()
             }
-            TelaPencil(tratti: $tratti, fuoco: fuoco)
+            TelaPencil(tratti: $tratti, strumenti: strumentiVisibili, fuoco: fuoco)
             ForEach($scritte) { $scritta in
                 VistaScritta(scritta: scritta, lato: l)
                     .gesture(

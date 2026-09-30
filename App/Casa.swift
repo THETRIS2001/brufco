@@ -16,9 +16,9 @@ struct Casa: View {
                     // affiancati: finche' lei non c'e', solo il mio.
                     if modello.altro != nil || modello.stato?.mioWidget != nil {
                         HStack(alignment: .top, spacing: 12) {
-                            SulWidget(titolo: "Sul tuo widget", disegno: modello.stato?.mioWidget) { aperto = $0 }
+                            RiquadroWidget(titolo: "Sul tuo widget", disegno: modello.stato?.mioWidget) { aperto = $0 }
                             if modello.altro != nil {
-                                SulWidget(titolo: "Sul widget di \(modello.nomeAltro)", disegno: modello.stato?.suoWidget) { aperto = $0 }
+                                RiquadroWidget(titolo: "Sul widget di \(modello.nomeAltro)", disegno: modello.stato?.suoWidget) { aperto = $0 }
                             }
                         }
                     }
@@ -78,7 +78,7 @@ struct Casa: View {
 }
 
 /// Uno dei due widget in cima alla Home: il disegno che mostra, o un posto vuoto.
-struct SulWidget: View {
+struct RiquadroWidget: View {
     let titolo: String
     let disegno: Disegno?
     let apri: (Disegno) -> Void
