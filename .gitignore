@@ -25,3 +25,6 @@ firma/
 
 # Python.
 __pycache__/
+
+# Copie di sicurezza dei dati del server: restano sul PC.
+backup/

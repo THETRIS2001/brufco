@@ -10,10 +10,9 @@ posto (server e GitHub).
 
 ## 1. Il suo iPhone 14
 
-- **PRIMA che lei si iscriva: `python strumenti/prova.py via`.** Dal 30/09
-  sul server c'è la persona di prova "Lei" (disegni finti per le prove di
-  Marco): occupa il secondo posto della coppia, e finché c'è a lei il server
-  risponde che la coppia è completa.
+- Il server è vuoto dal 30/09 sera (disegni di prova e persona di prova
+  tolti, copia in `backup/` sul PC): c'è solo Marco, il posto è libero. Se si
+  riusa `strumenti/prova.py`, `via` prima che lei si iscriva.
 - Lei apre in Safari **https://brufco.clamafloro.workers.dev/udid** e segue i
   tre passi (un profilo che non installa niente manda il codice del telefono).
   L'UDID compare a lei, da girare a Marco, e resta sul server (`udid/` su R2).
