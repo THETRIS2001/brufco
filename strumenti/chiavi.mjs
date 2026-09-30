@@ -84,9 +84,19 @@ function segretoServer(nome, valore) {
   annota(`Server: ${nome} consegnato.`);
 }
 
+/** GitHub a volte non risponde per qualche secondo: tre tentativi, con una pausa. */
 function segretoGithub(nome, valore) {
-  conValore(GH, ['secret', 'set', nome, '--repo', REPO], valore, { env: AMBIENTE_GH });
-  annota(`GitHub: ${nome} consegnato.`);
+  for (let tentativo = 1; ; tentativo++) {
+    try {
+      conValore(GH, ['secret', 'set', nome, '--repo', REPO], valore, { env: AMBIENTE_GH });
+      annota(`GitHub: ${nome} consegnato.`);
+      return;
+    } catch (e) {
+      if (tentativo === 3) throw e;
+      annota(`GitHub: ${nome}, tentativo ${tentativo} non riuscito (${e.message.slice(0, 120)}); riprovo.`);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5000 * tentativo);
+    }
+  }
 }
 
 /** I nomi dei segreti che ci sono gia' (mai i valori). */
