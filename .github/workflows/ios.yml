@@ -37,16 +37,7 @@ jobs:
       CARICA_BUILD: ${{ secrets.CARICA_BUILD }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Xcode 26 e XcodeGen
-        run: |
-          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
-          sudo xcode-select -s "$XCODE"
-          xcodebuild -version | head -1
-          brew install xcodegen > /dev/null
-
-      - name: Progetto Xcode, da project.yml
-        run: xcodegen generate --quiet
+      - uses: ./.github/actions/prepara
 
       - name: Certificato e profili
         env:

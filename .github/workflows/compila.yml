@@ -1,0 +1,36 @@
+# Solo compilazione, senza firma: a ogni push che tocca l'app, e a richiesta.
+# Non vuole i segreti della firma, e dice subito se lo Swift compila. Gli
+# errori, ripuliti come nella build ad hoc, stanno nel log (pubblico).
+name: Compila
+
+on:
+  push:
+    branches: [main]
+    paths: ['App/**', 'Widget/**', 'Notifiche/**', 'Condiviso/**', 'project.yml', '.github/**']
+  workflow_dispatch:
+
+concurrency:
+  group: compila
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  compila:
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      SQUADRA_APPLE: ${{ secrets.SQUADRA_APPLE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/prepara
+      - name: Compila
+        run: |
+          mkdir -p build
+          if ! xcodebuild -project BRUFCO.xcodeproj -scheme BRUFCO -configuration Release \
+               -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build > build/compila.log 2>&1; then
+            grep -E "error:|fatal error" build/compila.log | sed -E "s#$GITHUB_WORKSPACE/##g" | sort -u | head -200
+            exit 1
+          fi
+          grep -cE "warning:" build/compila.log | xargs -I{} echo "Compila. Avvisi: {}"

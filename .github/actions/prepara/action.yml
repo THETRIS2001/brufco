@@ -1,0 +1,18 @@
+# Il Mac pronto per BRU✈️FCO: Xcode 26 (il piu' recente), XcodeGen, e il
+# progetto generato da project.yml. Lo usano la build ad hoc e quella di sola
+# compilazione. Vuole SQUADRA_APPLE nell'ambiente del job.
+name: Prepara il Mac
+description: Xcode 26, XcodeGen e BRUFCO.xcodeproj
+runs:
+  using: composite
+  steps:
+    - name: Xcode 26 e XcodeGen
+      shell: bash
+      run: |
+        XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+        sudo xcode-select -s "$XCODE"
+        xcodebuild -version | head -1
+        brew install xcodegen > /dev/null
+    - name: Progetto Xcode, da project.yml
+      shell: bash
+      run: xcodegen generate --quiet
