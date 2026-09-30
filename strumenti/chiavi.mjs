@@ -1,8 +1,10 @@
 // Le chiavi di BRU✈️FCO, consegnate da chi le ha in mano. Nessuna si stampa.
 //
-//   node strumenti/chiavi.mjs
+//   node strumenti/chiavi.mjs            consegna quello che manca
+//   node strumenti/chiavi.mjs --tutto    rifa' tutto (chiavi nuove, codice nuovo)
 //
-// Un comando solo, niente da incollare:
+// Un comando solo, niente da incollare, e si puo' rilanciare: fa solo i passi
+// che mancano (guarda i nomi dei segreti, mai i valori).
 // 1. al server (segreti del Worker): la chiave APNs (APNS_KEY_P8), il codice
 //    della coppia (CODICE_COPPIA: lo scrivi tu, o con Invio lo inventa lo
 //    script, lo mostra alla fine e lo tiene in chiavi/codice-coppia.txt) e il
@@ -10,12 +12,11 @@
 // 2. a GitHub (segreti del repository, che la build usa): il certificato di
 //    distribuzione (APPLE_CERT_P12 e APPLE_CERT_PASSWORD) e lo stesso
 //    CARICA_BUILD.
-// I file vengono da strumenti/locale.json, fuori dal repository.
-//
-// Ogni passo sta in piedi da solo: se uno non va, gli altri si fanno lo stesso.
+// I file vengono da strumenti/locale.json, fuori dal repository. Com'e' andato
+// ogni passo, senza valori, sta in chiavi/consegna.log.
 
 import { randomBytes, randomInt } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { spawnSync } from 'node:child_process';
@@ -23,26 +24,66 @@ import { fileURLToPath } from 'node:url';
 
 const RADICE = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const LOCALE = JSON.parse(readFileSync(join(RADICE, 'strumenti', 'locale.json'), 'utf8'));
+const CHIAVI = join(RADICE, 'chiavi');
+const REGISTRO = join(CHIAVI, 'consegna.log');
 const REPO = 'THETRIS2001/brufco';
 const WINDOWS = process.platform === 'win32';
+const TUTTO = process.argv.includes('--tutto');
+
+mkdirSync(CHIAVI, { recursive: true });
+writeFileSync(REGISTRO, `consegna del ${new Date().toISOString()}\n`);
+
+function annota(riga) {
+  console.log(riga);
+  appendFileSync(REGISTRO, `${riga}\n`);
+}
+
+/** gh col percorso completo e senza token nell'ambiente: usa il suo accesso salvato. */
+const GH = (() => {
+  if (!WINDOWS) return 'gh';
+  const trovato = spawnSync('where.exe', ['gh'], { encoding: 'utf8' });
+  return String(trovato.stdout ?? '').split(/\r?\n/).find((r) => r.toLowerCase().endsWith('gh.exe')) || 'gh';
+})();
+const AMBIENTE_GH = Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'GH_TOKEN' && k !== 'GITHUB_TOKEN'));
 
 /** Un comando con un valore sullo standard input: il valore non passa mai dagli argomenti. */
-function conValore(comando, argomenti, valore, cartella = RADICE) {
-  const r = spawnSync(comando, argomenti, { input: valore, cwd: cartella, stdio: ['pipe', 'ignore', 'pipe'], shell: WINDOWS, encoding: 'utf8' });
+function conValore(comando, argomenti, valore, opzioni = {}) {
+  const r = spawnSync(comando, argomenti, { input: valore, stdio: ['pipe', 'ignore', 'pipe'], encoding: 'utf8', ...opzioni });
+  if (r.error) throw new Error(`${comando}: ${r.error.message}`);
   if (r.status !== 0) {
     const perche = String(r.stderr ?? '').split('\n').filter(Boolean).slice(-3).join(' | ');
-    throw new Error(`${comando} ${argomenti.slice(0, 3).join(' ')}: ${perche || 'uscita ' + r.status}`);
+    throw new Error(`${argomenti.slice(0, 3).join(' ')}: ${perche || 'uscita ' + r.status}`);
   }
 }
 
 function segretoServer(nome, valore) {
-  conValore('npx', ['wrangler', 'secret', 'put', nome], valore, join(RADICE, 'server'));
-  console.log(`Server: ${nome} consegnato.`);
+  conValore('npx', ['wrangler', 'secret', 'put', nome], valore, { cwd: join(RADICE, 'server'), shell: WINDOWS });
+  annota(`Server: ${nome} consegnato.`);
 }
 
 function segretoGithub(nome, valore) {
-  conValore('gh', ['secret', 'set', nome, '--repo', REPO], valore);
-  console.log(`GitHub: ${nome} consegnato.`);
+  conValore(GH, ['secret', 'set', nome, '--repo', REPO], valore, { env: AMBIENTE_GH });
+  annota(`GitHub: ${nome} consegnato.`);
+}
+
+/** I nomi dei segreti che ci sono gia' (mai i valori). */
+function nomiServer() {
+  const r = spawnSync('npx', ['wrangler', 'secret', 'list', '--format', 'json'], { cwd: join(RADICE, 'server'), shell: WINDOWS, encoding: 'utf8' });
+  try {
+    return new Set(JSON.parse(r.stdout).map((s) => s.name));
+  } catch {
+    return new Set();
+  }
+}
+
+function nomiGithub() {
+  const r = spawnSync(GH, ['secret', 'list', '--repo', REPO, '--json', 'name'], { env: AMBIENTE_GH, encoding: 'utf8' });
+  try {
+    return new Set(JSON.parse(r.stdout).map((s) => s.name));
+  } catch {
+    annota(`GitHub: non riesco a leggere i segreti (${String(r.stderr ?? r.error?.message ?? '').trim().split('\n').pop()}).`);
+    return new Set();
+  }
 }
 
 function file(percorso) {
@@ -54,7 +95,7 @@ async function passo(nome, fai) {
   try {
     await fai();
   } catch (e) {
-    console.log(`${nome}: non riuscito (${e.message}). Gli altri passi vanno avanti.`);
+    annota(`${nome}: non riuscito (${e.message}). Gli altri passi vanno avanti.`);
   }
 }
 
@@ -79,30 +120,44 @@ async function codiceDellaCoppia() {
   return scritto;
 }
 
-await passo('APNS_KEY_P8', () => segretoServer('APNS_KEY_P8', file(LOCALE.apns.file).toString('utf8').replace(/\r/g, '')));
+const server = TUTTO ? new Set() : nomiServer();
+const github = TUTTO ? new Set() : nomiGithub();
+const gia = (nome) => annota(`${nome}: c'era gia'.`);
+
+await passo('APNS_KEY_P8', () =>
+  server.has('APNS_KEY_P8') ? gia('APNS_KEY_P8') : segretoServer('APNS_KEY_P8', file(LOCALE.apns.file).toString('utf8').replace(/\r/g, '')),
+);
 
 let codiceScelto = null;
 await passo('CODICE_COPPIA', async () => {
+  if (server.has('CODICE_COPPIA')) return gia('CODICE_COPPIA (e resta quello: e\' in chiavi/codice-coppia.txt)');
   const codice = await codiceDellaCoppia();
   segretoServer('CODICE_COPPIA', codice);
-  mkdirSync(join(RADICE, 'chiavi'), { recursive: true });
-  writeFileSync(join(RADICE, 'chiavi', 'codice-coppia.txt'), `${codice}\n`);
+  writeFileSync(join(CHIAVI, 'codice-coppia.txt'), `${codice}\n`);
   codiceScelto = codice;
 });
 
+// Il permesso delle build deve essere uguale sui due lati: se manca da una
+// parte, se ne fa uno nuovo per tutte e due.
 await passo('CARICA_BUILD', () => {
+  if (server.has('CARICA_BUILD') && github.has('CARICA_BUILD')) return gia('CARICA_BUILD');
   const valore = randomBytes(32).toString('base64url');
   segretoServer('CARICA_BUILD', valore);
   segretoGithub('CARICA_BUILD', valore);
 });
 
-await passo('APPLE_CERT_P12', () => segretoGithub('APPLE_CERT_P12', file(LOCALE.certificato.p12).toString('base64')));
+await passo('APPLE_CERT_P12', () =>
+  github.has('APPLE_CERT_P12') ? gia('APPLE_CERT_P12') : segretoGithub('APPLE_CERT_P12', file(LOCALE.certificato.p12).toString('base64')),
+);
 await passo('APPLE_CERT_PASSWORD', () =>
-  segretoGithub('APPLE_CERT_PASSWORD', file(LOCALE.certificato.password).toString('utf8').trim()),
+  github.has('APPLE_CERT_PASSWORD')
+    ? gia('APPLE_CERT_PASSWORD')
+    : segretoGithub('APPLE_CERT_PASSWORD', file(LOCALE.certificato.password).toString('utf8').trim()),
 );
 
-console.log('\nFatto.');
+annota('\nFatto.');
 if (codiceScelto) {
+  // Solo sullo schermo di chi lo lancia: nel registro non va.
   console.log(`\nIl codice della coppia e': ${codiceScelto}`);
   console.log("Lo scrivete tutti e due nell'app la prima volta. E' anche in chiavi/codice-coppia.txt, fuori dal repository.");
 }
