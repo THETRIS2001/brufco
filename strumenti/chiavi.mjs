@@ -17,6 +17,7 @@
 
 import { randomBytes, randomInt } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { spawnSync } from 'node:child_process';
@@ -45,6 +46,13 @@ const GH = (() => {
   return String(trovato.stdout ?? '').split(/\r?\n/).find((r) => r.toLowerCase().endsWith('gh.exe')) || 'gh';
 })();
 const AMBIENTE_GH = Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'GH_TOKEN' && k !== 'GITHUB_TOKEN'));
+// Lanciato da certi terminali l'ambiente arriva senza le cartelle dell'utente,
+// e gh non trova il suo accesso: si rimettono al loro posto.
+if (WINDOWS) {
+  AMBIENTE_GH.APPDATA ??= join(homedir(), 'AppData', 'Roaming');
+  AMBIENTE_GH.LOCALAPPDATA ??= join(homedir(), 'AppData', 'Local');
+  AMBIENTE_GH.USERPROFILE ??= homedir();
+}
 
 /** Un comando con un valore sullo standard input: il valore non passa mai dagli argomenti. */
 function conValore(comando, argomenti, valore, opzioni = {}) {
@@ -118,6 +126,11 @@ async function codiceDellaCoppia() {
   if (!scritto) return codiceInventato();
   if (scritto.length < 8) throw new Error('troppo corto: almeno 8 caratteri');
   return scritto;
+}
+
+{
+  const stato = spawnSync(GH, ['auth', 'status', '--hostname', 'github.com'], { env: AMBIENTE_GH, encoding: 'utf8' });
+  annota(`GitHub: accesso ${stato.status === 0 ? 'ok' : 'NON trovato'} (gh in ${GH}).`);
 }
 
 const server = TUTTO ? new Set() : nomiServer();
