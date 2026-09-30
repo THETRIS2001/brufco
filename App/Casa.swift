@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// La schermata principale: il disegno che ho sul widget, e lo storico.
+/// La schermata principale: i due widget, il mio e il suo, e lo storico.
 struct Casa: View {
     @Environment(Modello.self) private var modello
     @State private var nuovo = false
@@ -12,16 +12,14 @@ struct Casa: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
-                    if let sulWidget = modello.stato?.mioWidget {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Sul tuo widget").font(.headline)
-                            Button { aperto = sulWidget } label: {
-                                Miniatura(disegno: sulWidget, pixel: 1080)
+                    // Quello che vedo io e quello che vede l'altra persona,
+                    // affiancati: finche' lei non c'e', solo il mio.
+                    if modello.altro != nil || modello.stato?.mioWidget != nil {
+                        HStack(alignment: .top, spacing: 12) {
+                            SulWidget(titolo: "Sul tuo widget", disegno: modello.stato?.mioWidget) { aperto = $0 }
+                            if modello.altro != nil {
+                                SulWidget(titolo: "Sul widget di \(modello.nomeAltro)", disegno: modello.stato?.suoWidget) { aperto = $0 }
                             }
-                            .buttonStyle(.plain)
-                            Text("\(modello.autore(di: sulWidget)) · \(sulWidget.creato.formatted(.relative(presentation: .named)))")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
                         }
                     }
 
@@ -76,6 +74,43 @@ struct Casa: View {
             aperto = disegno
             modello.daAprire = nil
         }
+    }
+}
+
+/// Uno dei due widget in cima alla Home: il disegno che mostra, o un posto vuoto.
+struct SulWidget: View {
+    let titolo: String
+    let disegno: Disegno?
+    let apri: (Disegno) -> Void
+    @Environment(Modello.self) private var modello
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(titolo)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            if let disegno {
+                Button { apri(disegno) } label: {
+                    Miniatura(disegno: disegno, pixel: 540)
+                }
+                .buttonStyle(.plain)
+                Text("\(modello.autore(di: disegno)) · \(disegno.creato.formatted(.relative(presentation: .named)))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            } else {
+                Color(.secondarySystemBackground)
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay {
+                        Text("Ancora niente")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
