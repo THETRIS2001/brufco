@@ -22,3 +22,6 @@ server/.wrangler/
 # GitHub, li carica strumenti/apple.mjs).
 strumenti/locale.json
 firma/
+
+# Python.
+__pycache__/
