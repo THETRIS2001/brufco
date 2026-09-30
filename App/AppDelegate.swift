@@ -23,8 +23,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         print("[push] registrazione non riuscita: \(error.localizedDescription)")
     }
 
-    /// La push silenziosa: c'e' un disegno nuovo per il widget.
-    func application(
+    /// La push silenziosa: c'e' un disegno nuovo per il widget. `nonisolated`:
+    /// il dizionario della push non passa nel contesto principale, ci passa
+    /// solo l'aggiornamento del modello.
+    nonisolated func application(
         _ application: UIApplication,
         didReceiveRemoteNotification userInfo: [AnyHashable: Any]
     ) async -> UIBackgroundFetchResult {
