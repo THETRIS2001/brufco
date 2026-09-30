@@ -23,16 +23,19 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         print("[push] registrazione non riuscita: \(error.localizedDescription)")
     }
 
-    /// La push silenziosa: c'e' un disegno nuovo per il widget. `nonisolated`:
-    /// il dizionario della push non passa nel contesto principale, ci passa
-    /// solo l'aggiornamento del modello.
-    nonisolated func application(
+    /// La push silenziosa: c'e' un disegno nuovo per il widget. La variante
+    /// col completionHandler resta tutta sul main actor: la versione `async`
+    /// farebbe attraversare al dizionario della push due contesti.
+    func application(
         _ application: UIApplication,
-        didReceiveRemoteNotification userInfo: [AnyHashable: Any]
-    ) async -> UIBackgroundFetchResult {
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
         WidgetCenter.shared.reloadAllTimelines()
-        await Modello.condiviso.aggiorna()
-        return .newData
+        Task {
+            await Modello.condiviso.aggiorna()
+            completionHandler(.newData)
+        }
     }
 
     /// Una notifica arrivata con l'app aperta: si vede lo stesso, e lo storico si aggiorna.
